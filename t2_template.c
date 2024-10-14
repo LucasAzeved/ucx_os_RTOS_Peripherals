@@ -15,7 +15,7 @@ void pwm_config();
 
 /* sensors parameters */
 const float F_VOLTAGE = 635.0;		// 590 ~ 700mV typical diode forward voltage
-const float T_COEFF = -2.0;		// 1.8 ~ 2.2mV change per degree Celsius
+const float T_COEFF = -2.0;			// 1.8 ~ 2.2mV change per degree Celsius
 const float V_RAIL = 3300.0;		// 3300mV rail voltage
 const float ADC_MAX = 4095.0;		// max ADC value
 const int ADC_SAMPLES = 1024;		// ADC read samples
@@ -55,7 +55,7 @@ void idle(void)
 	}
 }
 
-void task_a(void)
+void task_1(void) // Sensor Temperatura
 {
 	float f;
 	char fval[50];
@@ -74,7 +74,7 @@ void task_a(void)
 	}
 }
 
-void task_b(void)
+void task_2(void) // Sensor Luminosidade
 {
 	float f;
 	char fval[50];
@@ -88,8 +88,33 @@ void task_b(void)
 		
 		ftoa(f, fval, 6);
 		printf("lux: %s\n", fval);
-
+		
 		ucx_task_delay(100);
+	}
+}
+
+void task_3(void) // Controle Temperatura
+{
+	while(1) {
+
+	}
+}
+void task_4(void) // Controle Dimerização
+{
+	while(1) {
+		
+	}
+}
+void task_5(void) // Gerenciamento Aplicacao
+{
+	while(1) {
+		
+	}
+}
+void task_6(void) // Depuracao
+{
+	while(1) {
+		// printf("task ...\n");
 	}
 }
 
@@ -101,8 +126,8 @@ int32_t app_main(void)
 	pwm_config();
 
 	ucx_task_spawn(idle, DEFAULT_STACK_SIZE);
-	ucx_task_spawn(task_a, DEFAULT_STACK_SIZE);
-	ucx_task_spawn(task_b, DEFAULT_STACK_SIZE);
+	ucx_task_spawn(task_1, DEFAULT_STACK_SIZE);
+	ucx_task_spawn(task_2, DEFAULT_STACK_SIZE);
 	
 	/* ADC mutex */
 	adc_mtx = ucx_sem_create(5, 1);
