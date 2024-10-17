@@ -21,6 +21,11 @@ const float ADC_MAX = 4095.0;		// max ADC value
 const int ADC_SAMPLES = 1024;		// ADC read samples
 const int REF_RESISTANCE = 4700;
 
+const int temp_max = 40;
+const int lumi_max = 100;
+
+struct mq_s *mq1, *mq2, *mq3, *mq4, *mq5;
+
 /* sensor aquisition functions */
 float temperature()
 {
@@ -59,6 +64,10 @@ void task_1(void) // Sensor Temperatura
 {
 	float f;
 	char fval[50];
+
+	int val = 0;
+	struct message_s msg1;
+	struct message_s *pmsg;
 	
 	while (1) {
 		/* critical section: ADC is shared! */
@@ -68,9 +77,13 @@ void task_1(void) // Sensor Temperatura
 		ucx_sem_signal(adc_mtx);
 		
 		ftoa(f, fval, 6);
-		printf("temp: %s\n", fval);
+		//printf("temp: %s\n", fval);
+
+		pmsg = &msg1;
+		pmsg->data = (void *)(size_t)fval;
+		ucx_mq_enqueue(mq1, pmsg);
 		
-		ucx_task_delay(100);
+		ucx_task_yield();
 	}
 }
 
@@ -78,6 +91,9 @@ void task_2(void) // Sensor Luminosidade
 {
 	float f;
 	char fval[50];
+
+	struct message_s msg2;
+	struct message_s *pmsg;
 	
 	while (1) {
 		/* critical section: ADC is shared! */
@@ -87,34 +103,121 @@ void task_2(void) // Sensor Luminosidade
 		ucx_sem_signal(adc_mtx);
 		
 		ftoa(f, fval, 6);
-		printf("lux: %s\n", fval);
+		//printf("lux: %s\n", fval);
 		
-		ucx_task_delay(100);
+		pmsg = &msg2;
+		pmsg->data = (void *)(size_t)fval;
+		ucx_mq_enqueue(mq2, pmsg);
+		
+		ucx_task_yield();
 	}
 }
 
-void task_3(void) // Controle Temperatura
+void task_3(void) // Controle Temperatura (B0)
 {
+	float temperatura = 0;
+	struct message_s *pmsg;
+	
 	while(1) {
 
+		if (ucx_mq_items(mq3) > 0) {
+			pmsg = ucx_mq_dequeue(mq3);
+			temperatura = atof(pmsg->data);
+		}
+		
+
+		if (temperatura < 0){
+			TIM3->CCR3 = 0;
+		}
+		else if (temperatura > 40){
+			TIM3->CCR3 = 999;
+		}
+		else{
+			TIM3->CCR3 = 999*(temperatura/temp_max);
+		}
+		ucx_task_yield();
 	}
 }
-void task_4(void) // Controle Dimerização
+
+void task_4(void) // Controle Dimerização (B1)
 {
+	float luminosidade = 0;
+	struct message_s *pmsg;
+
 	while(1) {
 		
+		if (ucx_mq_items(mq4) > 0) {
+			pmsg = ucx_mq_dequeue(mq4);
+			luminosidade = atof(pmsg->data);
+		}
+		
+		if (luminosidade < 10){
+			TIM3->CCR4 = 999;
+		}
+		else if (luminosidade > 100){
+			TIM3->CCR4 = 0;
+		}
+		else{
+			TIM3->CCR4 = 999*(1-(luminosidade/lumi_max));
+		}
+		ucx_task_yield();
 	}
 }
 void task_5(void) // Gerenciamento Aplicacao
 {
-	while(1) {
+	struct message_s msg1, msg2, msg3, msg4;
+	float temperatura = 0, luminosidade = 0;
+	char str[50];
+	struct message_s *pmsg1 , *pmsg2;
+	
+	while (1) {
+//		printf("t2\n");
 		
+		if (ucx_mq_items(mq1) > 0) {
+			pmsg1 = ucx_mq_dequeue(mq1);
+			pmsg1 = &msg1;
+			temperatura = atof(pmsg1->data);
+			ucx_mq_enqueue(mq3, pmsg1);
+
+			pmsg1 = &msg2;
+			sprintf(str, "Temperatura: %f", temperatura);
+			pmsg1->data = (void *)&str;
+			ucx_mq_enqueue(mq5, pmsg1);
+		}
+		if (ucx_mq_items(mq2) > 0) {
+			pmsg2 = ucx_mq_dequeue(mq1);
+			pmsg2 = &msg3;
+			luminosidade = atof(pmsg2->data);
+			ucx_mq_enqueue(mq4, pmsg2);
+
+			pmsg2 = &msg4;
+			sprintf(str, "Luminosidade: %f", luminosidade);
+			pmsg2->data = (void *)&str;
+			ucx_mq_enqueue(mq5, pmsg2);
+		}
+		
+		ucx_task_yield();
 	}
 }
 void task_6(void) // Depuracao
 {
-	while(1) {
-		// printf("task ...\n");
+	struct message_s *msg1, *msg2;
+	// struct message_s dummy;
+	
+	while (1) {
+		
+		if (ucx_mq_items(mq5) > 1) {
+
+			msg1 = ucx_mq_dequeue(mq5);
+			msg2 = ucx_mq_dequeue(mq5);
+			printf("T1 -  %s\n", (char *)msg1->data);
+			printf("T2 -  %s\n", (char *)msg2->data);
+			
+			_delay_ms(100);
+			
+		}
+		
+		ucx_task_yield();
 	}
 }
 
@@ -128,9 +231,20 @@ int32_t app_main(void)
 	ucx_task_spawn(idle, DEFAULT_STACK_SIZE);
 	ucx_task_spawn(task_1, DEFAULT_STACK_SIZE);
 	ucx_task_spawn(task_2, DEFAULT_STACK_SIZE);
+	ucx_task_spawn(task_3, DEFAULT_STACK_SIZE);
+	ucx_task_spawn(task_4, DEFAULT_STACK_SIZE);
+	ucx_task_spawn(task_5, DEFAULT_STACK_SIZE);
+	ucx_task_spawn(task_6, DEFAULT_STACK_SIZE);
 	
 	/* ADC mutex */
 	adc_mtx = ucx_sem_create(5, 1);
+
+	mq1 = ucx_mq_create(8);
+	mq2 = ucx_mq_create(8);
+	mq3 = ucx_mq_create(8);
+	mq4 = ucx_mq_create(8);
+	mq5 = ucx_mq_create(8);
+
 
 	// start UCX/OS, non-preemptive mode
 	return 1;
