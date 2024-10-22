@@ -65,22 +65,22 @@ void task_1(void) // Sensor Temperatura
 	float f;
 	char fval[50];
 
-	int val = 0;
 	struct message_s msg1;
 	struct message_s *pmsg;
 	
 	while (1) {
 		/* critical section: ADC is shared! */
 		ucx_sem_wait(adc_mtx);
-		adc_channel(ADC_Channel_8);
+		adc_channel(ADC_Channel_9);
 		f = temperature();
 		ucx_sem_signal(adc_mtx);
 		
 		ftoa(f, fval, 6);
-		//printf("temp: %s\n", fval);
+		printf("temp: %s\n", fval);
 
 		pmsg = &msg1;
 		pmsg->data = (void *)(size_t)fval;
+		printf("temp data: %s\n", pmsg->data);
 		ucx_mq_enqueue(mq1, pmsg);
 		
 		ucx_task_yield();
@@ -98,7 +98,7 @@ void task_2(void) // Sensor Luminosidade
 	while (1) {
 		/* critical section: ADC is shared! */
 		ucx_sem_wait(adc_mtx);
-		adc_channel(ADC_Channel_9);
+		adc_channel(ADC_Channel_8);
 		f = luminosity();
 		ucx_sem_signal(adc_mtx);
 		
@@ -124,16 +124,15 @@ void task_3(void) // Controle Temperatura (B0)
 			pmsg = ucx_mq_dequeue(mq3);
 			temperatura = atof(pmsg->data);
 		}
-		
 
 		if (temperatura < 0){
-			TIM3->CCR3 = 0;
+			TIM4->CCR3 = 0;
 		}
 		else if (temperatura > 40){
-			TIM3->CCR3 = 999;
+			TIM4->CCR3 = 999;
 		}
 		else{
-			TIM3->CCR3 = 999*(temperatura/temp_max);
+			TIM4->CCR3 = 999*(temperatura/temp_max);
 		}
 		ucx_task_yield();
 	}
@@ -152,13 +151,13 @@ void task_4(void) // Controle Dimerização (B1)
 		}
 		
 		if (luminosidade < 10){
-			TIM3->CCR4 = 999;
+			TIM4->CCR4 = 999;
 		}
 		else if (luminosidade > 100){
-			TIM3->CCR4 = 0;
+			TIM4->CCR4 = 0;
 		}
 		else{
-			TIM3->CCR4 = 999*(1-(luminosidade/lumi_max));
+			TIM4->CCR4 = 999*(1-(luminosidade/lumi_max));
 		}
 		ucx_task_yield();
 	}
@@ -178,6 +177,8 @@ void task_5(void) // Gerenciamento Aplicacao
 			pmsg1 = &msg1;
 			temperatura = atof(pmsg1->data);
 			ucx_mq_enqueue(mq3, pmsg1);
+
+			printf("Temperatura: %f", temperatura);
 
 			pmsg1 = &msg2;
 			sprintf(str, "Temperatura: %f", temperatura);
@@ -230,21 +231,22 @@ int32_t app_main(void)
 
 	ucx_task_spawn(idle, DEFAULT_STACK_SIZE);
 	ucx_task_spawn(task_1, DEFAULT_STACK_SIZE);
-	ucx_task_spawn(task_2, DEFAULT_STACK_SIZE);
-	ucx_task_spawn(task_3, DEFAULT_STACK_SIZE);
-	ucx_task_spawn(task_4, DEFAULT_STACK_SIZE);
+	// ucx_task_spawn(task_2, DEFAULT_STACK_SIZE);
+	// ucx_task_spawn(task_3, DEFAULT_STACK_SIZE);
+	// ucx_task_spawn(task_4, DEFAULT_STACK_SIZE);
 	ucx_task_spawn(task_5, DEFAULT_STACK_SIZE);
-	ucx_task_spawn(task_6, DEFAULT_STACK_SIZE);
+	// ucx_task_spawn(task_6, DEFAULT_STACK_SIZE);
 	
 	/* ADC mutex */
 	adc_mtx = ucx_sem_create(5, 1);
-
+	
 	mq1 = ucx_mq_create(8);
 	mq2 = ucx_mq_create(8);
 	mq3 = ucx_mq_create(8);
 	mq4 = ucx_mq_create(8);
 	mq5 = ucx_mq_create(8);
 
+	ucx_mq_enqueue(mq1, 0);
 
 	// start UCX/OS, non-preemptive mode
 	return 1;

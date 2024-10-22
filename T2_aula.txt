@@ -2,13 +2,13 @@ clonar repositorio no github (--branch devel)
 
 cd ucx-os 
 
-make ucx ARCH=arm/stm32f411_blackpill
+make ucx ARCH=arm/stm32f401_blackpill
 
 make exemplo (hello_p/pipes_s/...)
 
 dfu
 make flash
 reset
-make usb_load
+sudo make usb_load
 
 # Tem exemplos de mutex no diretorio app/
