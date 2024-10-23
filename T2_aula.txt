@@ -4,11 +4,14 @@ cd ucx-os
 
 make ucx ARCH=arm/stm32f401_blackpill
 
+cp ../ucx_os_RTOS_Peripherals/*.c app/t2_template/
 make exemplo (hello_p/pipes_s/...)
 
 dfu
 make flash
 reset
 sudo make usb_load
+
+sudo rm /dev/ttyACM0
 
 # Tem exemplos de mutex no diretorio app/

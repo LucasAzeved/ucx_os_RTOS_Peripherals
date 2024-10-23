@@ -83,6 +83,7 @@ void task_1(void) // Sensor Temperatura
 	    printf("Thread 1 - Temperatura: %s\n", (char *)pmsg->data);
 		ucx_mq_enqueue(mq1, pmsg);
 		
+		_delay_ms(100);
 		ucx_task_yield();
 	}
 }
@@ -110,6 +111,7 @@ void task_2(void) // Sensor Luminosidade
 		printf("Thread 2 - Luminosidade: %s\n", (char *)pmsg->data);
 		ucx_mq_enqueue(mq2, pmsg);
 		
+		_delay_ms(100);
 		ucx_task_yield();
 	}
 }
@@ -118,13 +120,20 @@ void task_3(void) // Controle Temperatura (B0)
 {
 	float temperatura = 0;
 	struct message_s *pmsg;
+	char *pstr;
 	
 	while(1) {
 
 		if (ucx_mq_items(mq3) > 0) {
 			pmsg = ucx_mq_dequeue(mq3);
-			temperatura = atof(pmsg->data);
-			printf("Thread 3 - Temperatura: %f\n", temperatura);
+			if (pmsg){
+				pstr = pmsg->data;
+				temperatura = atof(pstr);
+
+				_delay_ms(100);
+
+				printf("Thread 3 - Temperatura: %f\n", temperatura);
+			}
 		}
 
 		if (temperatura < 0){
@@ -136,6 +145,7 @@ void task_3(void) // Controle Temperatura (B0)
 		else{
 			TIM4->CCR3 = 999*(temperatura/temp_max);
 		}
+		_delay_ms(100);
 		ucx_task_yield();
 	}
 }
@@ -144,13 +154,20 @@ void task_4(void) // Controle Dimerização (B1)
 {
 	float luminosidade = 0;
 	struct message_s *pmsg;
+	char *pstr;
 
 	while(1) {
 		
 		if (ucx_mq_items(mq4) > 0) {
 			pmsg = ucx_mq_dequeue(mq4);
-			luminosidade = atof(pmsg->data);
-			printf("Thread 4 - Luminosidade: %f\n", luminosidade);
+			if (pmsg){
+				pstr = pmsg->data;
+				luminosidade = atof(pstr);
+
+				_delay_ms(100);
+
+				printf("Thread 4 - Luminosidade: %f\n", luminosidade);
+			}
 		}
 		
 		if (luminosidade < 10){
@@ -162,6 +179,7 @@ void task_4(void) // Controle Dimerização (B1)
 		else{
 			TIM4->CCR4 = 999*(1-(luminosidade/lumi_max));
 		}
+		_delay_ms(100);
 		ucx_task_yield();
 	}
 }
@@ -171,6 +189,7 @@ void task_5(void) // Gerenciamento Aplicacao
 	struct message_s msg1, msg2, msg3, msg4;
 	float temperatura = 0, luminosidade = 0;
 	char str[50], float_str[50];
+	char *pstr;
 	struct message_s *pmsg1 , *pmsg2;
 	
 	while (1) {
@@ -178,41 +197,56 @@ void task_5(void) // Gerenciamento Aplicacao
 		
 		if (ucx_mq_items(mq1) > 0) {
 			pmsg1 = ucx_mq_dequeue(mq1);
-			temperatura = atof(pmsg1->data);
+			if (pmsg1){
+				pstr = pmsg1->data;
 
-			printf("Thread 5 (leitura) - Temperatura: %f\n", temperatura);
+				temperatura = atof(pstr);
 
-			pmsg1 = &msg1;
-			ftoa(temperatura, float_str, 6);
-			pmsg1->data = (void *)&float_str;
-			ucx_mq_enqueue(mq3, pmsg1);
+				printf("Thread 5 (leitura) - Temperatura: %f\n", temperatura);
 
-			printf("Thread 5 (escrita) - Temperatura: %s\n", (char *)float_str);
+				_delay_ms(100);
 
-			pmsg1 = &msg2;
-			sprintf(str, "Temperatura: %f", temperatura);
-			pmsg1->data = (void *)&str;
-			ucx_mq_enqueue(mq5, pmsg1);
+				pmsg1 = &msg1;
+				ftoa(temperatura, float_str, 6);
+				pmsg1->data = (void *)&float_str;
+				ucx_mq_enqueue(mq3, pmsg1);
+
+				printf("Thread 5 (escrita) - Temperatura: %s\n", (char *)float_str);
+
+				_delay_ms(100);
+
+				pmsg1 = &msg2;
+				sprintf(str, "Temperatura: %f", temperatura);
+				pmsg1->data = (void *)&str;
+				ucx_mq_enqueue(mq5, pmsg1);
+			}
 		}
 		if (ucx_mq_items(mq2) > 0) {
 			pmsg2 = ucx_mq_dequeue(mq1);
-			luminosidade = atof(pmsg2->data);
+			if (pmsg2){
+				pstr = pmsg2->data;
+				luminosidade = atof(pstr);
 
-			printf("Thread 5 (leitura) - Luminosidade: %f\n", luminosidade);
+				printf("Thread 5 (leitura) - Luminosidade: %f\n", luminosidade);
 
-			pmsg2 = &msg3;
-			ftoa(luminosidade, float_str, 6);
-			pmsg2->data = (void *)&float_str;
-			ucx_mq_enqueue(mq4, pmsg2);
+				_delay_ms(100);
 
-			printf("Thread 5 (escrita) - Luminosidade: %s\n", (char *)float_str);
+				pmsg2 = &msg3;
+				ftoa(luminosidade, float_str, 6);
+				pmsg2->data = (void *)&float_str;
+				ucx_mq_enqueue(mq4, pmsg2);
 
-			pmsg2 = &msg4;
-			sprintf(str, "Luminosidade: %f", luminosidade);
-			pmsg2->data = (void *)&str;
-			ucx_mq_enqueue(mq5, pmsg2);
+				printf("Thread 5 (escrita) - Luminosidade: %s\n", (char *)float_str);
+
+				_delay_ms(100);
+
+				pmsg2 = &msg4;
+				sprintf(str, "Luminosidade: %f", luminosidade);
+				pmsg2->data = (void *)&str;
+				ucx_mq_enqueue(mq5, pmsg2);
+			}
 		}
-		
+		_delay_ms(100);
 		ucx_task_yield();
 	}
 }
@@ -246,11 +280,11 @@ int32_t app_main(void)
 
 	ucx_task_spawn(idle, DEFAULT_STACK_SIZE);
 	ucx_task_spawn(task_1, DEFAULT_STACK_SIZE);
-	// ucx_task_spawn(task_2, DEFAULT_STACK_SIZE);
-	// ucx_task_spawn(task_3, DEFAULT_STACK_SIZE);
-	// ucx_task_spawn(task_4, DEFAULT_STACK_SIZE);
+	ucx_task_spawn(task_2, DEFAULT_STACK_SIZE);
+	ucx_task_spawn(task_3, DEFAULT_STACK_SIZE);
+	ucx_task_spawn(task_4, DEFAULT_STACK_SIZE);
 	ucx_task_spawn(task_5, DEFAULT_STACK_SIZE);
-	// ucx_task_spawn(task_6, DEFAULT_STACK_SIZE);
+	ucx_task_spawn(task_6, DEFAULT_STACK_SIZE);
 	
 	/* ADC mutex */
 	adc_mtx = ucx_sem_create(5, 1);
