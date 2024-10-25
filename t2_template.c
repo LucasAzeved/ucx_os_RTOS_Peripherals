@@ -24,7 +24,7 @@ const int REF_RESISTANCE = 4700;
 const int temp_max = 40;
 const int lumi_max = 100;
 
-struct mq_s *mq1, *mq2, *mq3, *mq4, *mq5;
+struct mq_s *mq1, *mq2, *mq3, *mq4, *mq5, *mq6;
 
 /* sensor aquisition functions */
 float temperature()
@@ -121,6 +121,7 @@ void task_3(void) // Controle Temperatura (B0)
 	float temperatura = 0;
 	struct message_s *pmsg;
 	char *pstr;
+	char float_str[50];
 	
 	while(1) {
 
@@ -129,10 +130,11 @@ void task_3(void) // Controle Temperatura (B0)
 			if (pmsg){
 				pstr = pmsg->data;
 				temperatura = atof(pstr);
+				ftoa(temperatura, float_str, 6);
 
 				_delay_ms(100);
 
-				printf("Thread 3 - Temperatura: %f\n", temperatura);
+				printf("Thread 3 - Temperatura: %s\n", float_str);
 			}
 		}
 
@@ -155,6 +157,7 @@ void task_4(void) // Controle Dimerização (B1)
 	float luminosidade = 0;
 	struct message_s *pmsg;
 	char *pstr;
+	char float_str[50];
 
 	while(1) {
 		
@@ -163,10 +166,11 @@ void task_4(void) // Controle Dimerização (B1)
 			if (pmsg){
 				pstr = pmsg->data;
 				luminosidade = atof(pstr);
+				ftoa(luminosidade, float_str, 6);
 
 				_delay_ms(100);
 
-				printf("Thread 4 - Luminosidade: %f\n", luminosidade);
+				printf("Thread 4 - Luminosidade: %s\n", float_str);
 			}
 		}
 		
@@ -199,26 +203,25 @@ void task_5(void) // Gerenciamento Aplicacao
 			pmsg1 = ucx_mq_dequeue(mq1);
 			if (pmsg1){
 				pstr = pmsg1->data;
-
 				temperatura = atof(pstr);
+				ftoa(temperatura, float_str, 6);
 
-				printf("Thread 5 (leitura) - Temperatura: %f\n", temperatura);
+				printf("Thread 5 (T3) - Temperatura: %s\n", (char *)float_str);
 
 				_delay_ms(100);
 
 				pmsg1 = &msg1;
-				ftoa(temperatura, float_str, 6);
 				pmsg1->data = (void *)&float_str;
 				ucx_mq_enqueue(mq3, pmsg1);
-
-				printf("Thread 5 (escrita) - Temperatura: %s\n", (char *)float_str);
 
 				_delay_ms(100);
 
 				pmsg1 = &msg2;
-				sprintf(str, "Temperatura: %f", temperatura);
+				sprintf(str, "Temperatura: %s", float_str);
 				pmsg1->data = (void *)&str;
 				ucx_mq_enqueue(mq5, pmsg1);
+
+				// printf("%s\n", (char *)str);
 			}
 		}
 		if (ucx_mq_items(mq2) > 0) {
@@ -226,24 +229,24 @@ void task_5(void) // Gerenciamento Aplicacao
 			if (pmsg2){
 				pstr = pmsg2->data;
 				luminosidade = atof(pstr);
+				ftoa(luminosidade, float_str, 6);
 
-				printf("Thread 5 (leitura) - Luminosidade: %f\n", luminosidade);
+				printf("Thread 5 (T3) - Luminosidade: %s\n", (char *)float_str);
 
 				_delay_ms(100);
 
 				pmsg2 = &msg3;
-				ftoa(luminosidade, float_str, 6);
 				pmsg2->data = (void *)&float_str;
 				ucx_mq_enqueue(mq4, pmsg2);
-
-				printf("Thread 5 (escrita) - Luminosidade: %s\n", (char *)float_str);
 
 				_delay_ms(100);
 
 				pmsg2 = &msg4;
-				sprintf(str, "Luminosidade: %f", luminosidade);
+				sprintf(str, "Luminosidade: %s", float_str);
 				pmsg2->data = (void *)&str;
-				ucx_mq_enqueue(mq5, pmsg2);
+				ucx_mq_enqueue(mq6, pmsg2);
+
+				// printf("%s\n", (char *)str);
 			}
 		}
 		_delay_ms(100);
@@ -256,15 +259,18 @@ void task_6(void) // Depuracao
 	
 	while (1) {
 		
-		if (ucx_mq_items(mq5) > 1) {
+		if (ucx_mq_items(mq5) > 0) {
 
 			msg1 = ucx_mq_dequeue(mq5);
-			msg2 = ucx_mq_dequeue(mq5);
 			printf("T1 -  %s\n", (char *)msg1->data);
+
+			_delay_ms(100);		
+		}
+		if (ucx_mq_items(mq6) > 0) {
+			msg2 = ucx_mq_dequeue(mq6);
 			printf("T2 -  %s\n", (char *)msg2->data);
 			
 			_delay_ms(100);
-			
 		}
 		
 		ucx_task_yield();
@@ -294,6 +300,7 @@ int32_t app_main(void)
 	mq3 = ucx_mq_create(8);
 	mq4 = ucx_mq_create(8);
 	mq5 = ucx_mq_create(8);
+	mq6 = ucx_mq_create(8);
 
 	ucx_mq_enqueue(mq1, 0);
 
