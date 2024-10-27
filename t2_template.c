@@ -80,10 +80,10 @@ void task_1(void) // Sensor Temperatura
 
 		pmsg = &msg1;
 		pmsg->data = (void *)&fval;
-	    printf("Thread 1 - Temperatura: %s\n", (char *)pmsg->data);
+	    // printf("Thread 1 - Temperatura: %s\n", (char *)pmsg->data);
 		ucx_mq_enqueue(mq1, pmsg);
 		
-		_delay_ms(100);
+		// _delay_ms(100);
 		ucx_task_yield();
 	}
 }
@@ -108,10 +108,10 @@ void task_2(void) // Sensor Luminosidade
 		
 		pmsg = &msg2;
 		pmsg->data = (void *)&fval;
-		printf("Thread 2 - Luminosidade: %s\n", (char *)pmsg->data);
+		// printf("Thread 2 - Luminosidade: %s\n", (char *)pmsg->data);
 		ucx_mq_enqueue(mq2, pmsg);
 		
-		_delay_ms(100);
+		// _delay_ms(100);
 		ucx_task_yield();
 	}
 }
@@ -132,9 +132,9 @@ void task_3(void) // Controle Temperatura (B0)
 				temperature = atof(pstr);
 				ftoa(temperature, float_str, 6);
 
-				_delay_ms(100);
+				// _delay_ms(100);
 
-				printf("Thread 3 - Temperatura: %s\n", float_str);
+				// printf("Thread 3 - Temperatura: %s\n", float_str);
 			}
 		}
 
@@ -147,7 +147,7 @@ void task_3(void) // Controle Temperatura (B0)
 		else{
 			TIM4->CCR3 = (int)(999 * (temperature / temp_max));
 		}
-		_delay_ms(100);
+		// _delay_ms(100);
 		ucx_task_yield();
 	}
 }
@@ -168,9 +168,9 @@ void task_4(void) // Controle Dimerização (B1)
 				luminosity = atof(pstr);
 				ftoa(luminosity, float_str, 6);
 
-				_delay_ms(100);
+				// _delay_ms(100);
 
-				printf("Thread 4 - Luminosidade: %s\n", float_str);
+				// printf("Thread 4 - Luminosidade: %s\n", float_str);
 			}
 		}
 		
@@ -183,7 +183,7 @@ void task_4(void) // Controle Dimerização (B1)
 		else{
 			TIM4->CCR4 = (int)(999 * (1 - (luminosity / lumi_max)));
 		}
-		_delay_ms(100);
+		// _delay_ms(100);
 		ucx_task_yield();
 	}
 }
@@ -206,15 +206,15 @@ void task_5(void) // Gerenciamento Aplicacao
 				temperature = atof(pstr);
 				ftoa(temperature, float_str, 6);
 
-				printf("Thread 5 (T3) - Temperatura: %s\n", (char *)float_str);
+				// printf("Thread 5 (T3) - Temperatura: %s\n", (char *)float_str);
 
-				_delay_ms(100);
+				// _delay_ms(100);
 
 				pmsg1 = &msg1;
 				pmsg1->data = (void *)&float_str;
 				ucx_mq_enqueue(mq3, pmsg1);
 
-				_delay_ms(100);
+				// _delay_ms(100);
 
 				pmsg1 = &msg2;
 				sprintf(str, "Temperatura: %s", float_str);
@@ -231,15 +231,15 @@ void task_5(void) // Gerenciamento Aplicacao
 				luminosity = atof(pstr);
 				ftoa(luminosity, float_str, 6);
 
-				printf("Thread 5 (T3) - Luminosidade: %s\n", (char *)float_str);
+				// printf("Thread 5 (T3) - Luminosidade: %s\n", (char *)float_str);
 
-				_delay_ms(100);
+				// _delay_ms(100);
 
 				pmsg2 = &msg3;
 				pmsg2->data = (void *)&float_str;
 				ucx_mq_enqueue(mq4, pmsg2);
 
-				_delay_ms(100);
+				// _delay_ms(100);
 
 				pmsg2 = &msg4;
 				sprintf(str, "Luminosidade: %s", float_str);
@@ -249,7 +249,7 @@ void task_5(void) // Gerenciamento Aplicacao
 				// printf("%s\n", (char *)str);
 			}
 		}
-		_delay_ms(100);
+		// _delay_ms(100);
 		ucx_task_yield();
 	}
 }
