@@ -21,8 +21,8 @@ const float ADC_MAX = 4095.0;		// max ADC value
 const int ADC_SAMPLES = 1024;		// ADC read samples
 const int REF_RESISTANCE = 4700;
 
-const int temp_max = 40;
-const int lumi_max = 100;
+const float temp_max = 40.0;
+const float lumi_max = 100.0;
 
 struct mq_s *mq1, *mq2, *mq3, *mq4, *mq5, *mq6;
 
@@ -118,7 +118,7 @@ void task_2(void) // Sensor Luminosidade
 
 void task_3(void) // Controle Temperatura (B0)
 {
-	float temperatura = 0;
+	float temperature = 0;
 	struct message_s *pmsg;
 	char *pstr;
 	char float_str[50];
@@ -129,8 +129,8 @@ void task_3(void) // Controle Temperatura (B0)
 			pmsg = ucx_mq_dequeue(mq3);
 			if (pmsg){
 				pstr = pmsg->data;
-				temperatura = atof(pstr);
-				ftoa(temperatura, float_str, 6);
+				temperature = atof(pstr);
+				ftoa(temperature, float_str, 6);
 
 				_delay_ms(100);
 
@@ -138,14 +138,14 @@ void task_3(void) // Controle Temperatura (B0)
 			}
 		}
 
-		if (temperatura < 0){
+		if (temperature < 0){
 			TIM4->CCR3 = 0;
 		}
-		else if (temperatura > 40){
+		else if (temperature > 40){
 			TIM4->CCR3 = 999;
 		}
 		else{
-			TIM4->CCR3 = 999*(temperatura/temp_max);
+			TIM4->CCR3 = (int)(999 * (temperature / temp_max));
 		}
 		_delay_ms(100);
 		ucx_task_yield();
@@ -154,7 +154,7 @@ void task_3(void) // Controle Temperatura (B0)
 
 void task_4(void) // Controle Dimerização (B1)
 {
-	float luminosidade = 0;
+	float luminosity = 0;
 	struct message_s *pmsg;
 	char *pstr;
 	char float_str[50];
@@ -165,8 +165,8 @@ void task_4(void) // Controle Dimerização (B1)
 			pmsg = ucx_mq_dequeue(mq4);
 			if (pmsg){
 				pstr = pmsg->data;
-				luminosidade = atof(pstr);
-				ftoa(luminosidade, float_str, 6);
+				luminosity = atof(pstr);
+				ftoa(luminosity, float_str, 6);
 
 				_delay_ms(100);
 
@@ -174,14 +174,14 @@ void task_4(void) // Controle Dimerização (B1)
 			}
 		}
 		
-		if (luminosidade < 10){
+		if (luminosity < 10){
 			TIM4->CCR4 = 999;
 		}
-		else if (luminosidade > 100){
+		else if (luminosity > 100){
 			TIM4->CCR4 = 0;
 		}
 		else{
-			TIM4->CCR4 = 999*(1-(luminosidade/lumi_max));
+			TIM4->CCR4 = (int)(999 * (1 - (luminosity / lumi_max)));
 		}
 		_delay_ms(100);
 		ucx_task_yield();
@@ -191,7 +191,7 @@ void task_4(void) // Controle Dimerização (B1)
 void task_5(void) // Gerenciamento Aplicacao
 {
 	struct message_s msg1, msg2, msg3, msg4;
-	float temperatura = 0, luminosidade = 0;
+	float temperature = 0, luminosity = 0;
 	char str[50], float_str[50];
 	char *pstr;
 	struct message_s *pmsg1 , *pmsg2;
@@ -203,8 +203,8 @@ void task_5(void) // Gerenciamento Aplicacao
 			pmsg1 = ucx_mq_dequeue(mq1);
 			if (pmsg1){
 				pstr = pmsg1->data;
-				temperatura = atof(pstr);
-				ftoa(temperatura, float_str, 6);
+				temperature = atof(pstr);
+				ftoa(temperature, float_str, 6);
 
 				printf("Thread 5 (T3) - Temperatura: %s\n", (char *)float_str);
 
@@ -225,11 +225,11 @@ void task_5(void) // Gerenciamento Aplicacao
 			}
 		}
 		if (ucx_mq_items(mq2) > 0) {
-			pmsg2 = ucx_mq_dequeue(mq1);
+			pmsg2 = ucx_mq_dequeue(mq2);
 			if (pmsg2){
 				pstr = pmsg2->data;
-				luminosidade = atof(pstr);
-				ftoa(luminosidade, float_str, 6);
+				luminosity = atof(pstr);
+				ftoa(luminosity, float_str, 6);
 
 				printf("Thread 5 (T3) - Luminosidade: %s\n", (char *)float_str);
 
